@@ -7,7 +7,7 @@ using Nixill.CalcLib.Varaibles;
 using static Nixill.DiceLib.Casting;
 
 namespace Nixill.DiceLib {
-  public class DiceModule {
+  public static class DiceModule {
     public static bool Loaded { get; private set; }
 
     public static int DicePriority = 100;
@@ -26,7 +26,7 @@ namespace Nixill.DiceLib {
     public static CLComparisonOperatorSet ComparisonDrop { get; private set; }
     public static CLComparisonOperatorSet ComparisonKeep { get; private set; }
 
-    public void Load() {
+    public static void Load() {
       // First we need some local types
       Type num = typeof(CalcNumber);
       Type lst = typeof(CalcList);
@@ -91,7 +91,7 @@ namespace Nixill.DiceLib {
       return new CalcList(ret);
     }
 
-    private CalcValue BinDiceList(CalcObject left, CalcObject right, CLLocalStore vars, CLContextProvider context) {
+    private static CalcValue BinDiceList(CalcObject left, CalcObject right, CLLocalStore vars, CLContextProvider context) {
       int limit = int.MaxValue;
 
       // We need to get the limits if they've been set

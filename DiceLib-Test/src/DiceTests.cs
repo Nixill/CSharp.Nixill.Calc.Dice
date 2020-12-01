@@ -1,7 +1,9 @@
 using System;
+using Nixill.CalcLib.Modules;
 using Nixill.CalcLib.Objects;
 using Nixill.CalcLib.Parsing;
 using Nixill.CalcLib.Varaibles;
+using Nixill.DiceLib;
 using NUnit.Framework;
 
 namespace Nixill.Testing {
@@ -15,8 +17,14 @@ namespace Nixill.Testing {
 
       CLLocalStore vars = new CLLocalStore();
 
+      // ... so let's actually remember to load the freakin modules
+      MainModule.Load();
+      DiceModule.Load();
+
       // First off, let's test dice rolling!
       string test1 = TestLine("1d16", vars, randContext, "[14]");
+      string test2 = TestLine("2d16", vars, randContext, "[13,9]");
+      string test3 = TestLine("1d[1,2,3,4]", vars, randContext, "[4]");
     }
 
     public string TestLine(string line, CLLocalStore vars, CLContextProvider context, string expected) {
