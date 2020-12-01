@@ -115,8 +115,80 @@ namespace Nixill.DiceLib {
       return new CalcList(ret);
     }
 
-    // private static CalcValue CompUntilNumber(CalcObject left, CLComparison comp, CalcObject right, CLLocalStore vars, CLContextProvider context) {
+    private static CalcValue CompUntilNumber(CalcObject left, CLComparison comp, CalcObject right, CLLocalStore vars, CLContextProvider context) {
+      int limit = int.MaxValue;
 
-    // }
+      // We need to get the limits if they've been set
+      if (context.ContainsDerived(typeof(DiceContext), out Type actualDiceContext)) {
+        DiceContext dc = (DiceContext)(context.Get(actualDiceContext));
+        limit = Math.Min(dc.PerRollLimit, dc.PerFunctionLimit - dc.PerFunctionUsed);
+      }
+
+      CalcNumber numLeft = null;
+      CalcList lstLeft = null;
+      bool list = false;
+      CalcNumber numRight = (CalcNumber)right;
+
+      // Now figure out how many sides each die has...
+      int sides = 0;
+
+      // (Are we using a list or a number for the sides?)
+      if (left is CalcNumber) {
+        numLeft = (CalcNumber)right;
+        sides = (int)(numLeft.Value);
+      }
+      else if (right is CalcList) {
+        lstLeft = (CalcList)left;
+        sides = lstLeft.Count;
+        list = true;
+      }
+
+      // ... and ensure it's at least two.
+      if (sides < 2) {
+        throw new CLException("Dice must have at least two sides.");
+      }
+
+      // Now we can roll the dice!
+      List<CalcValue> lstRet = new List<CalcValue>();
+
+      Random rand = null;
+
+      if (context.ContainsDerived(typeof(Random), out Type actualRandom)) {
+        rand = (Random)(context.Get(actualRandom));
+      }
+      else {
+        rand = new Random();
+      }
+
+      for (int i = 0; i < limit; i++) {
+        // First determine the value
+        int choice = rand.Next(sides);
+        CalcNumber value = null;
+        if (list) {
+          CalcValue val = lstLeft[choice];
+          if (val is CalcList) {
+            value = ListToNum(val);
+          }
+          else {
+            value = (CalcNumber)val;
+          }
+        }
+        else {
+          value = new CalcNumber(choice + 1);
+        }
+
+        // See if it satisfies the comparison
+        if (comp.CompareFunction(value.Value, numRight.Value)) {
+          vars["*u"] = value;
+          return new CalcList(lstRet.ToArray());
+        }
+        else {
+          lstRet.Add(value);
+        }
+      }
+
+      vars["*u"] = new CalcNumber(0);
+      return new CalcList(lstRet.ToArray());
+    }
   }
 }
