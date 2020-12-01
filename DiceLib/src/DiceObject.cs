@@ -1,0 +1,52 @@
+using Nixill.CalcLib.Objects;
+
+namespace Nixill.DiceLib {
+  public class DiceDie : CalcNumber {
+    private const string DISPLAY_FORMAT = "0.###;-0.###";
+    private const string CODE_FORMAT = "0.###############;(-0.###############)";
+
+    public decimal Sides { get; }
+
+    public DiceDie(decimal value, decimal max) : base(value) {
+      Sides = max;
+    }
+
+    public override string ToCode() {
+      return "{!die," + Value.ToString(CODE_FORMAT) + "," + Sides.ToString(CODE_FORMAT) + "}";
+    }
+
+    public override string ToTree(int level) {
+      return new string(' ', level * 2) + "Die:\n" +
+        new string(' ', level * 2) + "  Value: " + Value.ToString(DISPLAY_FORMAT) + "\n" +
+        new string(' ', level * 2) + "  Sides: " + Sides.ToString(DISPLAY_FORMAT);
+    }
+  }
+
+  public class DiceCoin : CalcNumber {
+    private const string DISPLAY_FORMAT = "0.###;-0.###";
+    private const string CODE_FORMAT = "0.###############;(-0.###############)";
+
+    public decimal PotentialValue { get; }
+    public bool Heads { get; }
+
+    public DiceCoin(bool heads, decimal value) : base(heads ? value : 0) {
+      Heads = heads;
+      PotentialValue = value;
+    }
+
+    public override string ToString(int level) {
+      return Heads ? "H" : "T";
+    }
+
+    public override string ToCode() {
+      return "{!coin," + (Heads ? "1" : "0") + "," + PotentialValue.ToString(CODE_FORMAT) + "}";
+    }
+
+    public override string ToTree(int level) {
+      return new string(' ', level * 2) + "Die:\n" +
+        new string(' ', level * 2) + "  Heads: " + Heads + "\n" +
+        new string(' ', level * 2) + "  Potential: " + PotentialValue.ToString(DISPLAY_FORMAT);
+    }
+  }
+
+}

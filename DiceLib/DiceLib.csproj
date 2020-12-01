@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <PackageId>DiceLib</PackageId>
+    <Version>$(RELEASE_VERSION)</Version>
+    <Authors>Nixill</Authors>
+    <PackageDescription>An expansion to CalcLib for rolling dice.</PackageDescription>
+    <RepositoryUrl>https://github.com/ShadowFoxNixill/DiceLib</RepositoryUrl>
+    <RootNamespace>Nixill</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CalcLib" Version="0.2.0" />
+  </ItemGroup>
+
+</Project>
