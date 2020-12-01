@@ -22,7 +22,7 @@ namespace Nixill.Testing {
       DiceModule.Load();
 
       // First off, let's test dice rolling!
-      string test1 = TestLine("1d16", vars, randContext, "[14]");
+      string test1 = TestLine("d16", vars, randContext, "14");
       string test2 = TestLine("2d16", vars, randContext, "[13,9]");
       string test3 = TestLine("1d[1,2,3,4]", vars, randContext, "[4]");
     }

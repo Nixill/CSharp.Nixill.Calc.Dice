@@ -35,13 +35,18 @@ namespace Nixill.DiceLib {
 
       // The binary "d" operator.
       BinaryDice = CLOperators.BinaryOperators.GetOrNull("d") ?? new CLBinaryOperator("d", DicePriority, true, true);
-      BinaryDice.AddFunction(num, num, BinDiceNumber);
-      BinaryDice.AddFunction(num, lst, BinDiceList);
-      BinaryDice.AddFunction(lst, num, (left, right, vars, context) => BinDiceNumber(ListToNum((CalcList)left), right, vars, context));
-      BinaryDice.AddFunction(lst, lst, (left, right, vars, context) => BinDiceList(ListToNum((CalcList)left), right, vars, context));
+      BinaryDice.AddFunction(num, num, BinDice);
+      BinaryDice.AddFunction(num, lst, BinDice);
+      BinaryDice.AddFunction(lst, num, (left, right, vars, context) => BinDice(ListToNum((CalcList)left), right, vars, context));
+      BinaryDice.AddFunction(lst, lst, (left, right, vars, context) => BinDice(ListToNum((CalcList)left), right, vars, context));
+
+      // The prefix "d" operator.
+      PrefixDie = CLOperators.PrefixOperators.GetOrNull("d") ?? new CLPrefixOperator("d", DicePriority, true);
+      PrefixDie.AddFunction(num, (oper, vars, context) => ((CalcList)BinDice(new CalcNumber(1), oper, vars, context))[0]);
+      PrefixDie.AddFunction(lst, (oper, vars, context) => ((CalcList)BinDice(new CalcNumber(1), oper, vars, context))[0]);
     }
 
-    private static CalcValue BinDiceNumber(CalcObject left, CalcObject right, CLLocalStore vars, CLContextProvider context) {
+    private static CalcValue BinDice(CalcObject left, CalcObject right, CLLocalStore vars, CLContextProvider context) {
       int limit = int.MaxValue;
 
       // We need to get the limits if they've been set
@@ -51,7 +56,9 @@ namespace Nixill.DiceLib {
       }
 
       CalcNumber numLeft = (CalcNumber)left;
-      CalcNumber numRight = (CalcNumber)right;
+      CalcNumber numRight = null;
+      CalcList lstRight = null;
+      bool list = false;
 
       // Now figure out how many dice to roll...
       int count = (int)(numLeft.Value);
@@ -65,7 +72,18 @@ namespace Nixill.DiceLib {
       }
 
       // Now figure out how many sides each die has...
-      int sides = (int)(numRight.Value);
+      int sides = 0;
+
+      // (Are we using a list or a number for the sides?)
+      if (right is CalcNumber) {
+        numRight = (CalcNumber)right;
+        sides = (int)(numRight.Value);
+      }
+      else if (right is CalcList) {
+        lstRight = (CalcList)right;
+        sides = lstRight.Count;
+        list = true;
+      }
 
       // ... and ensure it's at least two.
       if (sides < 2) {
@@ -85,60 +103,20 @@ namespace Nixill.DiceLib {
       }
 
       for (int i = 0; i < count; i++) {
-        ret[i] = new CalcNumber(rand.Next(sides) + 1);
+        int choice = rand.Next(sides);
+        if (list) {
+          ret[i] = lstRight[choice];
+        }
+        else {
+          ret[i] = new CalcNumber(choice + 1);
+        }
       }
 
       return new CalcList(ret);
     }
 
-    private static CalcValue BinDiceList(CalcObject left, CalcObject right, CLLocalStore vars, CLContextProvider context) {
-      int limit = int.MaxValue;
+    // private static CalcValue CompUntilNumber(CalcObject left, CLComparison comp, CalcObject right, CLLocalStore vars, CLContextProvider context) {
 
-      // We need to get the limits if they've been set
-      if (context.ContainsDerived(typeof(DiceContext), out Type actualDiceCContext)) {
-        DiceContext dc = (DiceContext)(context.Get(actualDiceCContext));
-        limit = Math.Min(dc.PerRollLimit, dc.PerFunctionLimit - dc.PerFunctionUsed);
-      }
-
-      CalcNumber numLeft = (CalcNumber)left;
-      CalcList lstRight = (CalcList)right;
-
-      // Now figure out how many dice to roll...
-      int count = (int)(numLeft.Value);
-
-      // ... and whether or not it's within limits (including the limitation that it must be positive)
-      if (count < 0) {
-        throw new CLException("The number of dice to roll must be non-negative.");
-      }
-      else if (count > limit) {
-        count = limit;
-      }
-
-      // Now figure out how many sides each die has...
-      int sides = (int)(lstRight.Count);
-
-      // ... and ensure it's at least two.
-      if (sides < 2) {
-        throw new CLException("Dice must have at least two sides (items in the list).");
-      }
-
-      // Now we can roll the dice!
-      CalcValue[] ret = new CalcValue[count];
-
-      Random rand = null;
-
-      if (context.ContainsDerived(typeof(Random), out Type actualRandom)) {
-        rand = (Random)(context.Get(actualRandom));
-      }
-      else {
-        rand = new Random();
-      }
-
-      for (int i = 0; i < count; i++) {
-        ret[i] = lstRight[rand.Next(sides) + 1];
-      }
-
-      return new CalcList(ret);
-    }
+    // }
   }
 }
