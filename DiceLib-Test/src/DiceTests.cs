@@ -12,8 +12,8 @@ namespace Nixill.Testing {
     public void TestDice() {
       // We're going to use a fake randomizer so we know how random numbers go.
       Random rand = new Random(237);
-      CLContextProvider randContext = new CLContextProvider();
-      randContext.Add(rand);
+      CLContextProvider context = new CLContextProvider();
+      context.Add(rand);
 
       CLLocalStore vars = new CLLocalStore();
 
@@ -22,11 +22,26 @@ namespace Nixill.Testing {
       DiceModule.Load();
 
       // First off, let's test dice rolling!
-      string test1 = TestLine("d16", vars, randContext, "9");
-      string test2 = TestLine("2d16", vars, randContext, "[6,7]");
-      string test3 = TestLine("1d[1,2,3,4]", vars, randContext, "[1]");
+      string test1 = TestLine("d16", vars, context, "9");
+      string test2 = TestLine("2d16", vars, context, "[6,7]");
+      string test3 = TestLine("1d[1,2,3,4]", vars, context, "[1]");
 
-      string test4 = TestLine("10u=5", vars, randContext, "[3,7,1,4,3,7,9]");
+      string test4 = TestLine("10u=5", vars, context, "[3,7,1,4,3,7,9]");
+
+      // Let's set a limit for dice rolls now.
+      DiceContext diceContext = new DiceContext();
+      diceContext.PerFunctionLimit = 10;
+      diceContext.PerRollLimit = 4;
+
+      context.Add(diceContext);
+
+      // And try to exceed it.
+      string test5 = TestLine("10u=5+{_u}", vars, context, "[6,8,9,1,0]");
+      string test6 = TestLine("10u!%5+{_u}", vars, context, "[5,10,1]");
+
+      // Now we need to start testing the keeper operators!
+      string test7 = TestLine(test4 + "kh4", vars, context, "[7,4,7,9]");
+      string test8 = TestLine("{_d}", vars, context, "[3,1,3]");
     }
 
     public string TestLine(string line, CLLocalStore vars, CLContextProvider context, string expected) {
