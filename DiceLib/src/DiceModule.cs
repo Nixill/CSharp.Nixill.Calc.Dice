@@ -44,6 +44,10 @@ namespace Nixill.DiceLib {
       PrefixDie = CLOperators.PrefixOperators.GetOrNull("d") ?? new CLPrefixOperator("d", DicePriority, true);
       PrefixDie.AddFunction(num, (oper, vars, context) => ((CalcList)BinDice(new CalcNumber(1), oper, vars, context))[0]);
       PrefixDie.AddFunction(lst, (oper, vars, context) => ((CalcList)BinDice(new CalcNumber(1), oper, vars, context))[0]);
+
+      // The comparison "u" operator.
+      ComparisonUntil = (CLOperators.BinaryOperators.GetOrNull("u=") as CLComparisonOperator)?.Parent ?? new CLComparisonOperatorSet("u", DicePriority, true, true);
+      ComparisonUntil.AddFunction(num, num, CompUntil);
     }
 
     private static CalcValue BinDice(CalcObject left, CalcObject right, CLLocalStore vars, CLContextProvider context) {
@@ -115,7 +119,7 @@ namespace Nixill.DiceLib {
       return new CalcList(ret);
     }
 
-    private static CalcValue CompUntilNumber(CalcObject left, CLComparison comp, CalcObject right, CLLocalStore vars, CLContextProvider context) {
+    private static CalcValue CompUntil(CalcObject left, CLComparison comp, CalcObject right, CLLocalStore vars, CLContextProvider context) {
       int limit = int.MaxValue;
 
       // We need to get the limits if they've been set
@@ -134,10 +138,10 @@ namespace Nixill.DiceLib {
 
       // (Are we using a list or a number for the sides?)
       if (left is CalcNumber) {
-        numLeft = (CalcNumber)right;
+        numLeft = (CalcNumber)left;
         sides = (int)(numLeft.Value);
       }
-      else if (right is CalcList) {
+      else if (left is CalcList) {
         lstLeft = (CalcList)left;
         sides = lstLeft.Count;
         list = true;

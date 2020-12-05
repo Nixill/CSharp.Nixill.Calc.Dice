@@ -11,7 +11,7 @@ namespace Nixill.Testing {
     [Test]
     public void TestDice() {
       // We're going to use a fake randomizer so we know how random numbers go.
-      Random rand = new FakeRandom();
+      Random rand = new Random(237);
       CLContextProvider randContext = new CLContextProvider();
       randContext.Add(rand);
 
@@ -22,9 +22,11 @@ namespace Nixill.Testing {
       DiceModule.Load();
 
       // First off, let's test dice rolling!
-      string test1 = TestLine("d16", vars, randContext, "14");
-      string test2 = TestLine("2d16", vars, randContext, "[13,9]");
-      string test3 = TestLine("1d[1,2,3,4]", vars, randContext, "[3]");
+      string test1 = TestLine("d16", vars, randContext, "9");
+      string test2 = TestLine("2d16", vars, randContext, "[6,7]");
+      string test3 = TestLine("1d[1,2,3,4]", vars, randContext, "[1]");
+
+      string test4 = TestLine("10u=5", vars, randContext, "[3,7,1,4,3,7,9]");
     }
 
     public string TestLine(string line, CLLocalStore vars, CLContextProvider context, string expected) {
