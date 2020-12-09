@@ -1,0 +1,50 @@
+# thanks to https://github.com/SierraSoftworks/sierralib.api.views/blob/master/.github/workflows/package.yml for helping me figure this out
+# GitHub's own documentation was a bit lacking.
+name: Publish to GitHub Packages
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the project
+        uses: actions/checkout@master
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '3.1.100'
+      - name: Setup nuget
+        uses: nuget/setup-nuget@v1
+        with:
+          nuget-version: 'latest'
+      - name: Test the package
+        run: dotnet test
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+      - name: Pack the thing up
+        run: |
+          cd DiceLib/
+          dotnet pack -o out
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+      - name: Push to github release
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./DiceLib-Proj/out/DiceLib.${{ github.event.release.tag_name }}.nupkg
+          asset_name: DiceLib.${{ github.event.release.tag_name }}.nupkg
+          asset_content_type: application/zip
+      - name: Push to github packages
+        run: |
+          cd DiceLib
+          for f in ./out/*.nupkg
+          do
+            curl -vX PUT -u "ShadowFoxNixill:${{ secrets.GITHUB_TOKEN }}" -F package=@$f https://nuget.pkg.github.com/ShadowFoxNixill
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

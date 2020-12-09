@@ -1,0 +1,23 @@
+# thanks to https://github.com/SierraSoftworks/sierralib.api.views/blob/master/.github/workflows/package.yml for helping me figure this out
+# GitHub's own documentation was a bit lacking.
+name: Test the package
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the project
+        uses: actions/checkout@master
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '3.1.100'
+      - name: Run the test
+        run: dotnet test
+        env:
+          RELEASE_VERSION: 0.0.0-test+${{ github.sha }}
