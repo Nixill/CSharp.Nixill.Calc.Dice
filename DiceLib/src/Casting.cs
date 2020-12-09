@@ -13,6 +13,12 @@ namespace Nixill.DiceLib {
     // Converts a list to a number.
     internal static CalcNumber ListToNum(CalcObject lst) => new CalcNumber((lst as CalcList).Sum());
 
+    // Converts a value to a number.
+    internal static decimal ValueOf(CalcObject obj) {
+      if (obj is CalcNumber num) return num.Value;
+      else return (obj as CalcList).Sum();
+    }
+
     // Gets the parameter at a given index in the params list as a number.
     internal static CalcNumber NumberAt(CalcObject[] pars, int index, string name, CLLocalStore vars, CLContextProvider context) {
       if (pars.Length <= index) throw new CLException(name + " parameter " + index + " was not specified.");

@@ -13,6 +13,8 @@ namespace Nixill.DiceLib {
     public static int DicePriority = 100;
     public static int KeepPriority => DicePriority - 5;
 
+    public static int RepeatPriority = -10;
+
     public static CLBinaryOperator BinaryDice { get; private set; }
     public static CLBinaryOperator BinaryKeepHigh { get; private set; }
     public static CLBinaryOperator BinaryKeepLow { get; private set; }
@@ -30,8 +32,8 @@ namespace Nixill.DiceLib {
       // First we need some local types
       Type num = typeof(CalcNumber);
       Type lst = typeof(CalcList);
-      Type str = typeof(CalcString);
       Type val = typeof(CalcValue);
+      Type obj = typeof(CalcObject);
 
       // The binary "d" operator.
       BinaryDice = CLOperators.BinaryOperators.GetOrNull("d") ?? new CLBinaryOperator("d", DicePriority, true, true);
@@ -74,18 +76,37 @@ namespace Nixill.DiceLib {
       BinaryKeepLow.AddFunction(lst, lst, (left, right, vars, context) => KeepDropProxy(left, ListToNum(right), true, false, vars));
 
       // The binary "dh" operator.
-      BinaryDropHigh = CLOperators.BinaryOperators.GetOrNull("kh") ?? new CLBinaryOperator("dh", KeepPriority, true, true);
+      BinaryDropHigh = CLOperators.BinaryOperators.GetOrNull("dh") ?? new CLBinaryOperator("dh", KeepPriority, true, true);
       BinaryDropHigh.AddFunction(num, num, (left, right, vars, context) => KeepDropProxy(ValToList(left), right, false, true, vars));
       BinaryDropHigh.AddFunction(lst, num, (left, right, vars, context) => KeepDropProxy(left, right, false, true, vars));
       BinaryDropHigh.AddFunction(num, lst, (left, right, vars, context) => KeepDropProxy(ValToList(left), ListToNum(right), false, true, vars));
       BinaryDropHigh.AddFunction(lst, lst, (left, right, vars, context) => KeepDropProxy(left, ListToNum(right), false, true, vars));
 
       // The binary "dl" operator.
-      BinaryDropLow = CLOperators.BinaryOperators.GetOrNull("kl") ?? new CLBinaryOperator("dl", KeepPriority, true, true);
+      BinaryDropLow = CLOperators.BinaryOperators.GetOrNull("dl") ?? new CLBinaryOperator("dl", KeepPriority, true, true);
       BinaryDropLow.AddFunction(num, num, (left, right, vars, context) => KeepDropProxy(ValToList(left), right, false, false, vars));
       BinaryDropLow.AddFunction(lst, num, (left, right, vars, context) => KeepDropProxy(left, right, false, false, vars));
       BinaryDropLow.AddFunction(num, lst, (left, right, vars, context) => KeepDropProxy(ValToList(left), ListToNum(right), false, false, vars));
       BinaryDropLow.AddFunction(lst, lst, (left, right, vars, context) => KeepDropProxy(left, ListToNum(right), false, false, vars));
+
+      // The comparison "k" operator.
+      ComparisonKeep = (CLOperators.BinaryOperators.GetOrNull("k=") as CLComparisonOperator)?.Parent ?? new CLComparisonOperatorSet("k", KeepPriority, true, true);
+      ComparisonKeep.AddFunction(num, num, (left, comp, right, vars, context) => KeepCompare(ValToList(left), comp, right, vars));
+      ComparisonKeep.AddFunction(lst, num, (left, comp, right, vars, context) => KeepCompare(left, comp, right, vars));
+      ComparisonKeep.AddFunction(num, lst, (left, comp, right, vars, context) => KeepCompare(ValToList(left), comp, ListToNum(right), vars));
+      ComparisonKeep.AddFunction(lst, lst, (left, comp, right, vars, context) => KeepCompare(left, comp, ListToNum(right), vars));
+
+      // The comparison "d" operator.
+      ComparisonDrop = (CLOperators.BinaryOperators.GetOrNull("d=") as CLComparisonOperator)?.Parent ?? new CLComparisonOperatorSet("d", KeepPriority, true, true);
+      ComparisonDrop.AddFunction(num, num, (left, comp, right, vars, context) => KeepCompare(ValToList(left), comp.Opposite, right, vars));
+      ComparisonDrop.AddFunction(lst, num, (left, comp, right, vars, context) => KeepCompare(left, comp.Opposite, right, vars));
+      ComparisonDrop.AddFunction(num, lst, (left, comp, right, vars, context) => KeepCompare(ValToList(left), comp.Opposite, ListToNum(right), vars));
+      ComparisonDrop.AddFunction(lst, lst, (left, comp, right, vars, context) => KeepCompare(left, comp.Opposite, ListToNum(right), vars));
+
+      // The binary "**" operator.
+      BinaryRepeat = CLOperators.BinaryOperators.GetOrNull("**") ?? new CLBinaryOperator("**", RepeatPriority, false, true);
+      BinaryRepeat.AddFunction(obj, num, BinRepeat);
+      BinaryRepeat.AddFunction(obj, lst, (left, right, vars, context) => BinRepeat(left, ListToNum(right), vars, context));
     }
 
     private static CalcValue BinDice(CalcObject left, CalcObject right, CLLocalStore vars, CLContextProvider context) {
@@ -318,7 +339,7 @@ namespace Nixill.DiceLib {
         }
       }
 
-      if (!keep) {
+      if (keep) {
         vars["_d"] = new CalcList(noFits);
         return new CalcList(fits);
       }
@@ -330,6 +351,49 @@ namespace Nixill.DiceLib {
 
     private static CalcValue KeepDropProxy(CalcObject left, CalcObject right, bool keep, bool highest, CLLocalStore vars) {
       return KeepDropNumber((CalcList)left, (int)((CalcNumber)right).Value, keep, highest, vars);
+    }
+
+    private static CalcValue KeepCompare(CalcObject left, CLComparison comp, CalcObject right, CLLocalStore vars) {
+      CalcList lstLeft = (CalcList)left;
+      CalcNumber numRight = (CalcNumber)right;
+
+      List<CalcValue> kept = new List<CalcValue>();
+      List<CalcValue> dropped = new List<CalcValue>();
+
+      foreach (CalcValue val in lstLeft) {
+        if (comp.CompareFunction(ValueOf(val), numRight.Value)) {
+          kept.Add(val);
+        }
+        else {
+          dropped.Add(val);
+        }
+      }
+
+      vars["_d"] = new CalcList(dropped.ToArray());
+      return new CalcList(kept.ToArray());
+    }
+
+    private static CalcValue BinRepeat(CalcObject left, CalcObject right, CLLocalStore vars, CLContextProvider context) {
+      List<CalcValue> ret = new List<CalcValue>();
+      CalcNumber numRight = (CalcNumber)right;
+      int count = (int)numRight.Value;
+
+      CalcObject _i = null;
+
+      if (vars.ContainsVar("_i")) {
+        _i = vars["_i"];
+      }
+
+      for (int i = 0; i < count; i++) {
+        vars["_i"] = new CalcNumber(i);
+        ret.Add(left.GetValue(vars, context));
+      }
+
+      if (_i != null) {
+        vars["_i"] = _i;
+      }
+
+      return new CalcList(ret.ToArray());
     }
   }
 }

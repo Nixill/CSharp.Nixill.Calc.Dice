@@ -42,6 +42,13 @@ namespace Nixill.Testing {
       // Now we need to start testing the keeper operators!
       string test7 = TestLine(test4 + "kh4", vars, context, "[7,4,7,9]");
       string test8 = TestLine("{_d}", vars, context, "[3,1,3]");
+
+      // Test keeps by comparison
+      string test9 = TestLine(test4 + "k%3", vars, context, "[3,3,9]");
+      string test10 = TestLine("{_d}", vars, context, "[7,1,4,7]");
+
+      // And the repeat operator!
+      string test11 = TestLine("4d6kh3**6", vars, context, "[[1,2,6],[5,6,6],[4,6,5],[6,4,6],[3,6,6],[4,4,5]]");
     }
 
     public string TestLine(string line, CLLocalStore vars, CLContextProvider context, string expected) {
