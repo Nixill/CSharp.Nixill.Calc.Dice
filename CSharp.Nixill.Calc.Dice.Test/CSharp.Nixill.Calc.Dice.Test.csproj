@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DiceLib\DiceLib.csproj" />
+    <ProjectReference Include="..\CSharp.Nixill.Calc.Dice\CSharp.Nixill.Calc.Dice.csproj" />
   </ItemGroup>
 
 </Project>

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <PackageId>DiceLib</PackageId>
+    <PackageId>Nixill.Calc.Dice</PackageId>
     <Version>$(RELEASE_VERSION)</Version>
     <Authors>Nixill</Authors>
     <PackageDescription>An expansion to CalcLib for rolling dice.</PackageDescription>
@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CalcLib" Version="0.2.4" />
+    <PackageReference Include="Nixill.Calc" Version="0.2.5" />
   </ItemGroup>
 
 </Project>

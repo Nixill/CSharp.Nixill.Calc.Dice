@@ -26,7 +26,7 @@ jobs:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
       - name: Pack the thing up
         run: |
-          cd DiceLib/
+          cd CSharp.Nixill.Calc.Dice/
           dotnet pack -o out
         env:
           RELEASE_VERSION: ${{ github.event.release.tag_name }}
@@ -36,12 +36,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./DiceLib/out/DiceLib.${{ github.event.release.tag_name }}.nupkg
-          asset_name: DiceLib.${{ github.event.release.tag_name }}.nupkg
+          asset_path: ./CSharp.Nixill.Calc.Dice/out/Nixill.Calc.Dice.${{ github.event.release.tag_name }}.nupkg
+          asset_name: Nixill.Calc.Dice.${{ github.event.release.tag_name }}.nupkg
           asset_content_type: application/zip
       - name: Push to nuget.org
         run: |
-          cd DiceLib
+          cd CSharp.Nixill.Calc.Dice/
           for f in ./out/*.nupkg
           do
             dotnet nuget push $f --api-key ${{ secrets.NUGET_TOKEN }} --source https://api.nuget.org/v3/index.json
