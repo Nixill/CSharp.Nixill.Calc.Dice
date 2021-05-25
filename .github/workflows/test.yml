@@ -21,4 +21,3 @@ jobs:
         run: dotnet test
         env:
           RELEASE_VERSION: 0.0.0-test+${{ github.sha }}
-          GITHUB_TOKEN: ${{ secrets.NIXILL_TOKEN }}
