@@ -175,7 +175,15 @@ namespace Nixill.DiceLib {
         }
       }
 
-      return new CalcList(ret);
+      CalcList output = new CalcList(ret);
+
+      // Add to roll history
+      if (context.ContainsDerived(typeof(List<(string, CalcList)>), out Type actual)) {
+        List<(string, CalcList)> history = (List<(string, CalcList)>)context.Get(actual);
+        history.Add(($"{left.ToCode()}d{right.ToCode()}", output));
+      }
+
+      return output;
     }
 
     private static CalcValue CompUntil(CalcObject left, CLComparison comp, CalcObject right, CLLocalStore vars, CLContextProvider context) {
@@ -223,6 +231,9 @@ namespace Nixill.DiceLib {
         rand = new Random();
       }
 
+      CalcList output = null;
+      Type actual = null;
+
       for (int i = 0; i < limit; i++) {
         // First determine the value
         int choice = rand.Next(sides);
@@ -243,7 +254,17 @@ namespace Nixill.DiceLib {
         // See if it satisfies the comparison
         if (comp.CompareFunction(value.Value, numRight.Value)) {
           vars["_u"] = value;
-          return new CalcList(lstRet.ToArray());
+
+          output = new CalcList(lstRet.ToArray());
+
+          // Add to roll history
+          if (context.ContainsDerived(typeof(List<(string, CalcList)>), out actual)) {
+            List<(string, CalcList)> history = (List<(string, CalcList)>)context.Get(actual);
+            history.Add(($"{left.ToCode()}u{comp.PostfixSymbol}{right.ToCode()}", output));
+            history.Add(($"Killed above roll:", ValToList(value)));
+          }
+
+          return output;
         }
         else {
           lstRet.Add(value);
@@ -251,7 +272,15 @@ namespace Nixill.DiceLib {
       }
 
       vars["_u"] = new CalcNumber(0);
-      return new CalcList(lstRet.ToArray());
+      output = new CalcList(lstRet.ToArray());
+
+      // Add to roll history
+      if (context.ContainsDerived(typeof(List<(string, CalcList)>), out actual)) {
+        List<(string, CalcList)> history = (List<(string, CalcList)>)context.Get(actual);
+        history.Add(($"{left.ToCode()}u{comp.PostfixSymbol}{right.ToCode()}", output));
+      }
+
+      return output;
     }
 
     private static CalcValue KeepDropNumber(CalcList list, int count, bool keep, bool highest, CLLocalStore vars) {
