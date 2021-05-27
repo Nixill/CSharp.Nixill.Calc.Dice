@@ -111,11 +111,13 @@ namespace Nixill.DiceLib {
 
     private static CalcValue BinDice(CalcObject left, CalcObject right, CLLocalStore vars, CLContextProvider context) {
       int limit = int.MaxValue;
+      DiceContext dc = null;
 
       // We need to get the limits if they've been set
       if (context.ContainsDerived(typeof(DiceContext), out Type actualDiceContext)) {
-        DiceContext dc = (DiceContext)(context.Get(actualDiceContext));
+        dc = (DiceContext)(context.Get(actualDiceContext));
         limit = Math.Min(dc.PerRollLimit, dc.PerFunctionLimit - dc.PerFunctionUsed);
+        if (limit == 0) throw new LimitedDiceException();
       }
 
       CalcNumber numLeft = (CalcNumber)left;
@@ -127,12 +129,15 @@ namespace Nixill.DiceLib {
       int count = (int)(numLeft.Value);
 
       // ... and whether or not it's within limits (including the limitation that it must be positive)
-      if (count < 0) {
-        throw new CLException("The number of dice to roll must be non-negative.");
+      if (count <= 0) {
+        throw new CLException("The number of dice to roll must be positive.");
       }
       else if (count > limit) {
         count = limit;
       }
+
+      // also remember to actually UPDATE the limits! (╯°□°）╯︵ ┻━┻
+      if (dc != null) dc.PerFunctionUsed += count;
 
       // Now figure out how many sides each die has...
       int sides = 0;
@@ -189,10 +194,13 @@ namespace Nixill.DiceLib {
     private static CalcValue CompUntil(CalcObject left, CLComparison comp, CalcObject right, CLLocalStore vars, CLContextProvider context) {
       int limit = int.MaxValue;
 
+      DiceContext dc = null;
+
       // We need to get the limits if they've been set
       if (context.ContainsDerived(typeof(DiceContext), out Type actualDiceContext)) {
-        DiceContext dc = (DiceContext)(context.Get(actualDiceContext));
+        dc = (DiceContext)(context.Get(actualDiceContext));
         limit = Math.Min(dc.PerRollLimit, dc.PerFunctionLimit - dc.PerFunctionUsed);
+        if (limit == 0) throw new LimitedDiceException();
       }
 
       CalcNumber numLeft = null;
@@ -264,6 +272,9 @@ namespace Nixill.DiceLib {
             history.Add(($"Killed above roll:", ValToList(value)));
           }
 
+          // also remember to actually UPDATE the limits! (╯°□°）╯︵ ┻━┻
+          if (dc != null) dc.PerFunctionUsed += i + 1;
+
           return output;
         }
         else {
@@ -279,6 +290,9 @@ namespace Nixill.DiceLib {
         List<(string, CalcList)> history = (List<(string, CalcList)>)context.Get(actual);
         history.Add(($"{left.ToCode()}u{comp.PostfixSymbol}{right.ToCode()}", output));
       }
+
+      // also remember to actually UPDATE the limits! (╯°□°）╯︵ ┻━┻
+      if (dc != null) dc.PerFunctionUsed += limit;
 
       return output;
     }

@@ -48,7 +48,11 @@ namespace Nixill.Testing {
       string test10 = TestLine("{_d}", vars, context, "[7,1,4,7]");
 
       // And the repeat operator!
-      string test11 = TestLine("4d6kh3**6", vars, context, "[[1,2,6],[5,6,6],[4,6,5],[6,4,6],[3,6,6],[4,4,5]]");
+      diceContext.PerFunctionUsed = 0;
+      Assert.Throws<LimitedDiceException>(() => CLInterpreter.Interpret("4d6kh3**6").GetValue(vars, context));
+      diceContext.PerFunctionUsed = 0;
+      diceContext.PerFunctionLimit = 24;
+      string test11 = TestLine("4d6kh3**6", vars, context, "[[6,5,6],[6,3,3],[6,6,4],[4,5,6],[4,6,2],[4,6,6]]");
     }
 
     public string TestLine(string line, CLLocalStore vars, CLContextProvider context, string expected) {
