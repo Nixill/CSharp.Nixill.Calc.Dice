@@ -5,20 +5,25 @@ namespace Nixill.DiceLib {
     private const string DISPLAY_FORMAT = "0.###;-0.###";
     private const string CODE_FORMAT = "0.###############;(-0.###############)";
 
-    public decimal Sides { get; }
+    public CalcValue Sides { get; }
 
     public DiceDie(decimal value, decimal max) : base(value) {
-      Sides = max;
+      Sides = new CalcNumber(max);
+    }
+
+    public DiceDie(decimal value, CalcList sides) : base(value) {
+      Sides = sides;
     }
 
     public override string ToCode() {
-      return "{!die," + Value.ToString(CODE_FORMAT) + "," + Sides.ToString(CODE_FORMAT) + "}";
+      return "{!die," + Value.ToString(CODE_FORMAT) + "," + Sides.ToCode() + "}";
     }
 
     public override string ToTree(int level) {
       return new string(' ', level * 2) + "Die:\n" +
         new string(' ', level * 2) + "  Value: " + Value.ToString(DISPLAY_FORMAT) + "\n" +
-        new string(' ', level * 2) + "  Sides: " + Sides.ToString(DISPLAY_FORMAT);
+        new string(' ', level * 2) + "  Sides:\n" +
+        Sides.ToTree(level + 1);
     }
   }
 

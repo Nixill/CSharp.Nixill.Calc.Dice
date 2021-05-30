@@ -154,7 +154,7 @@ namespace Nixill.DiceLib {
       }
 
       // ... and ensure it's at least two.
-      if (sides < 2) {
+      if (sides < 1) {
         throw new CLException("Dice must have at least two sides.");
       }
 
@@ -173,10 +173,17 @@ namespace Nixill.DiceLib {
       for (int i = 0; i < count; i++) {
         int choice = rand.Next(sides);
         if (list) {
-          ret[i] = lstRight[choice];
+          CalcValue val = lstRight[choice];
+          if (val is CalcNumber valNum) {
+            ret[i] = new DiceDie(valNum.Value, lstRight);
+          }
+          else if (val is CalcList valList) {
+            ret[i] = new DiceDie(valList.Sum(), lstRight);
+          }
+          else throw new CLException("Dice must be numeric values."); // maybe I'll change this one day
         }
         else {
-          ret[i] = new CalcNumber(choice + 1);
+          ret[i] = new DiceDie(choice + 1, new CalcNumber(sides));
         }
       }
 
@@ -223,7 +230,7 @@ namespace Nixill.DiceLib {
       }
 
       // ... and ensure it's at least two.
-      if (sides < 2) {
+      if (sides < 1) {
         throw new CLException("Dice must have at least two sides.");
       }
 
@@ -248,15 +255,15 @@ namespace Nixill.DiceLib {
         CalcNumber value = null;
         if (list) {
           CalcValue val = lstLeft[choice];
-          if (val is CalcList) {
-            value = ListToNum(val);
+          if (val is CalcList valList) {
+            value = new DiceDie(valList.Sum(), lstLeft);
           }
-          else {
-            value = (CalcNumber)val;
+          else if (val is CalcNumber valNum) {
+            value = new DiceDie(valNum.Value, lstLeft);
           }
         }
         else {
-          value = new CalcNumber(choice + 1);
+          value = new DiceDie(choice + 1, new CalcNumber(sides));
         }
 
         // See if it satisfies the comparison
