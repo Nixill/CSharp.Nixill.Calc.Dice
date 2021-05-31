@@ -7,11 +7,7 @@ namespace Nixill.DiceLib {
 
     public CalcValue Sides { get; }
 
-    public DiceDie(decimal value, decimal max) : base(value) {
-      Sides = new CalcNumber(max);
-    }
-
-    public DiceDie(decimal value, CalcList sides) : base(value) {
+    public DiceDie(decimal value, CalcValue sides) : base(value) {
       Sides = sides;
     }
 

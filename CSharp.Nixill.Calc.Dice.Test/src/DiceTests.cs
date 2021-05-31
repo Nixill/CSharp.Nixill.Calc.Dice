@@ -22,11 +22,11 @@ namespace Nixill.Testing {
       DiceModule.Load();
 
       // First off, let's test dice rolling!
-      string test1 = TestLine("d16", vars, context, "9");
-      string test2 = TestLine("2d16", vars, context, "[6,7]");
-      string test3 = TestLine("1d[1,2,3,4]", vars, context, "[1]");
+      string test1 = TestLine("d16", vars, context, "{!die,9,16}"); // generated: 1
+      string test2 = TestLine("2d16", vars, context, "[{!die,6,16},{!die,7,16}]"); // generated: 3
+      string test3 = TestLine("1d[1,2,3,4]", vars, context, "[{!die,1,[1,2,3,4]}]"); // generated: 4
 
-      string test4 = TestLine("10u=5", vars, context, "[3,7,1,4,3,7,9]");
+      string test4 = TestLine("10u=5", vars, context, "[{!die,3,10},{!die,7,10},{!die,1,10},{!die,4,10},{!die,3,10},{!die,7,10},{!die,9,10}]"); // generated: 12
 
       // Let's set a limit for dice rolls now.
       DiceContext diceContext = new DiceContext();
@@ -36,23 +36,39 @@ namespace Nixill.Testing {
       context.Add(diceContext);
 
       // And try to exceed it.
-      string test5 = TestLine("10u=5+{_u}", vars, context, "[6,8,9,1,0]");
-      string test6 = TestLine("10u!%5+{_u}", vars, context, "[5,10,1]");
+      string test5 = TestLine("10u=5+{_u}", vars, context, "[{!die,6,10},{!die,8,10},{!die,9,10},{!die,1,10},0]"); // generated: 16
+      string test6 = TestLine("10u!%5+{_u}", vars, context, "[{!die,5,10},{!die,10,10},{!die,1,10}]"); // generated: 19
 
       // Now we need to start testing the keeper operators!
-      string test7 = TestLine(test4 + "kh4", vars, context, "[7,4,7,9]");
-      string test8 = TestLine("{_d}", vars, context, "[3,1,3]");
+      string test7 = TestLine(test4 + "kh4", vars, context, "[{!die,7,10},{!die,4,10},{!die,7,10},{!die,9,10}]");
+      string test8 = TestLine("{_d}", vars, context, "[{!die,3,10},{!die,1,10},{!die,3,10}]");
 
       // Test keeps by comparison
-      string test9 = TestLine(test4 + "k%3", vars, context, "[3,3,9]");
-      string test10 = TestLine("{_d}", vars, context, "[7,1,4,7]");
+      string test9 = TestLine(test4 + "k%3", vars, context, "[{!die,3,10},{!die,3,10},{!die,9,10}]");
+      string test10 = TestLine("{_d}", vars, context, "[{!die,7,10},{!die,1,10},{!die,4,10},{!die,7,10}]");
 
       // And the repeat operator!
       diceContext.PerFunctionUsed = 0;
-      Assert.Throws<LimitedDiceException>(() => CLInterpreter.Interpret("4d6kh3**6").GetValue(vars, context));
+      Assert.Throws<LimitedDiceException>(() => CLInterpreter.Interpret("4d6kh3**6").GetValue(vars, context)); // generated: 29
       diceContext.PerFunctionUsed = 0;
       diceContext.PerFunctionLimit = 24;
-      string test11 = TestLine("4d6kh3**6", vars, context, "[[6,5,6],[6,3,3],[6,6,4],[4,5,6],[4,6,2],[4,6,6]]");
+      string test11 = TestLine("4d6kh3**6", vars, context, "[[{!die,6,6},{!die,5,6},{!die,6,6}],[{!die,6,6},{!die,3,6},{!die,3,6}],[{!die,6,6},{!die,6,6},{!die,4,6}],[{!die,4,6},{!die,5,6},{!die,6,6}],[{!die,4,6},{!die,6,6},{!die,2,6}],[{!die,4,6},{!die,6,6},{!die,6,6}]]");
+      // generated: 53
+
+      diceContext.PerFunctionUsed = 0;
+      diceContext.PerRollLimit = 10;
+      string test12 = TestLine("6d10", vars, context, "[{!die,8,10},{!die,7,10},{!die,6,10},{!die,4,10},{!die,7,10},{!die,3,10}]");
+      // generated: 59
+      diceContext.PerFunctionUsed = 0;
+      string test13 = TestLine(test12 + "r%2", vars, context, "[{!die,3,10},{!die,7,10},{!die,10,10},{!die,6,10},{!die,7,10},{!die,3,10}]");
+      // generated: 62
+      diceContext.PerFunctionUsed = 0;
+      string test14 = TestLine(test13 + "x%3", vars, context, "[{!die,3,10},{!die,4,10},{!die,7,10},{!die,10,10},{!die,6,10},{!die,4,10},{!die,7,10},{!die,3,10},{!die,10,10}]");
+      // generated: 65
+      diceContext.PerFunctionUsed = 0;
+      string test15 = TestLine(test14 + "xr%2", vars, context,
+        "[{!die,3,10},{!die,4,10},{!die,1,10},{!die,7,10},{!die,10,10},{!die,9,10},{!die,6,10},{!die,7,10},{!die,4,10},{!die,4,10},{!die,9,10},{!die,7,10},{!die,3,10},{!die,10,10},{!die,7,10}]");
+      // generated: 71
     }
 
     public string TestLine(string line, CLLocalStore vars, CLContextProvider context, string expected) {

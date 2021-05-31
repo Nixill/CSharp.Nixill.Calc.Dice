@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Nixill.CalcLib.Exception;
+using Nixill.CalcLib.Functions;
 using Nixill.CalcLib.Objects;
 using Nixill.CalcLib.Operators;
 using Nixill.CalcLib.Varaibles;
@@ -11,11 +12,15 @@ namespace Nixill.DiceLib {
     public static bool Loaded { get; private set; }
 
     public static int DicePriority = 100;
-    public static int KeepPriority => DicePriority - 5;
+    public static int RerollPriority => DicePriority - 5;
+    public static int KeepPriority => DicePriority - 10;
 
     public static int RepeatPriority = -10;
 
     public static CLBinaryOperator BinaryDice { get; private set; }
+    public static CLBinaryOperator BinaryReroll { get; private set; }
+    public static CLBinaryOperator BinaryExplode { get; private set; }
+    public static CLBinaryOperator BinaryExplodeRecursive { get; private set; }
     public static CLBinaryOperator BinaryKeepHigh { get; private set; }
     public static CLBinaryOperator BinaryKeepLow { get; private set; }
     public static CLBinaryOperator BinaryKeepFirst { get; private set; }
@@ -25,8 +30,13 @@ namespace Nixill.DiceLib {
     public static CLBinaryOperator BinaryRepeat { get; private set; }
     public static CLPrefixOperator PrefixDie { get; private set; }
     public static CLComparisonOperatorSet ComparisonUntil { get; private set; }
+    public static CLComparisonOperatorSet ComparisonReroll { get; private set; }
+    public static CLComparisonOperatorSet ComparisonExplode { get; private set; }
+    public static CLComparisonOperatorSet ComparisonExplodeRecursive { get; private set; }
     public static CLComparisonOperatorSet ComparisonDrop { get; private set; }
     public static CLComparisonOperatorSet ComparisonKeep { get; private set; }
+
+    public static CLCodeFunction FuncDie { get; private set; }
 
     public static void Load() {
       // First we need some local types
@@ -53,6 +63,48 @@ namespace Nixill.DiceLib {
       ComparisonUntil.AddFunction(lst, num, CompUntil);
       ComparisonUntil.AddFunction(num, lst, (left, comp, right, vars, context) => CompUntil(left, comp, ListToNum(right), vars, context));
       ComparisonUntil.AddFunction(lst, lst, (left, comp, right, vars, context) => CompUntil(left, comp, ListToNum(right), vars, context));
+
+      // The binary "r" operator.
+      BinaryReroll = (CLOperators.BinaryOperators.GetOrNull("r")) ?? new CLBinaryOperator("r", RerollPriority, true, true);
+      BinaryReroll.AddFunction(num, num, (left, right, vars, context) => CompRerolls(ValToList(left), CLComparison.Equal, right, vars, context, false, false));
+      BinaryReroll.AddFunction(lst, num, (left, right, vars, context) => CompRerolls(left, CLComparison.Equal, right, vars, context, false, false));
+      BinaryReroll.AddFunction(num, lst, (left, right, vars, context) => CompRerolls(ValToList(left), CLComparison.Equal, ListToNum(right), vars, context, false, false));
+      BinaryReroll.AddFunction(lst, lst, (left, right, vars, context) => CompRerolls(left, CLComparison.Equal, ListToNum(right), vars, context, false, false));
+
+      // The binary "x" operator.
+      BinaryExplode = (CLOperators.BinaryOperators.GetOrNull("x")) ?? new CLBinaryOperator("x", RerollPriority, true, true);
+      BinaryExplode.AddFunction(num, num, (left, right, vars, context) => CompRerolls(ValToList(left), CLComparison.Equal, right, vars, context, true, false));
+      BinaryExplode.AddFunction(lst, num, (left, right, vars, context) => CompRerolls(left, CLComparison.Equal, right, vars, context, true, false));
+      BinaryExplode.AddFunction(num, lst, (left, right, vars, context) => CompRerolls(ValToList(left), CLComparison.Equal, ListToNum(right), vars, context, true, false));
+      BinaryExplode.AddFunction(lst, lst, (left, right, vars, context) => CompRerolls(left, CLComparison.Equal, ListToNum(right), vars, context, true, false));
+
+      // The binary "xr" operator.
+      BinaryExplodeRecursive = (CLOperators.BinaryOperators.GetOrNull("xr")) ?? new CLBinaryOperator("xr", RerollPriority, true, true);
+      BinaryExplodeRecursive.AddFunction(num, num, (left, right, vars, context) => CompRerolls(ValToList(left), CLComparison.Equal, right, vars, context, true, true));
+      BinaryExplodeRecursive.AddFunction(lst, num, (left, right, vars, context) => CompRerolls(left, CLComparison.Equal, right, vars, context, true, true));
+      BinaryExplodeRecursive.AddFunction(num, lst, (left, right, vars, context) => CompRerolls(ValToList(left), CLComparison.Equal, ListToNum(right), vars, context, true, true));
+      BinaryExplodeRecursive.AddFunction(lst, lst, (left, right, vars, context) => CompRerolls(left, CLComparison.Equal, ListToNum(right), vars, context, true, true));
+
+      // The comparison "r" operator.
+      ComparisonReroll = (CLOperators.BinaryOperators.GetOrNull("r=") as CLComparisonOperator)?.Parent ?? new CLComparisonOperatorSet("r", RerollPriority, true, true);
+      ComparisonReroll.AddFunction(num, num, (left, comp, right, vars, context) => CompRerolls(ValToList(left), comp, right, vars, context, false, false));
+      ComparisonReroll.AddFunction(lst, num, (left, comp, right, vars, context) => CompRerolls(left, comp, right, vars, context, false, false));
+      ComparisonReroll.AddFunction(num, lst, (left, comp, right, vars, context) => CompRerolls(ValToList(left), comp, ListToNum(right), vars, context, false, false));
+      ComparisonReroll.AddFunction(lst, lst, (left, comp, right, vars, context) => CompRerolls(left, comp, ListToNum(right), vars, context, false, false));
+
+      // The comparison "x" operator.
+      ComparisonExplode = (CLOperators.BinaryOperators.GetOrNull("x=") as CLComparisonOperator)?.Parent ?? new CLComparisonOperatorSet("x", RerollPriority, true, true);
+      ComparisonExplode.AddFunction(num, num, (left, comp, right, vars, context) => CompRerolls(ValToList(left), comp, right, vars, context, true, false));
+      ComparisonExplode.AddFunction(lst, num, (left, comp, right, vars, context) => CompRerolls(left, comp, right, vars, context, true, false));
+      ComparisonExplode.AddFunction(num, lst, (left, comp, right, vars, context) => CompRerolls(ValToList(left), comp, ListToNum(right), vars, context, true, false));
+      ComparisonExplode.AddFunction(lst, lst, (left, comp, right, vars, context) => CompRerolls(left, comp, ListToNum(right), vars, context, true, false));
+
+      // The comparison "xr" operator.
+      ComparisonExplodeRecursive = (CLOperators.BinaryOperators.GetOrNull("xr=") as CLComparisonOperator)?.Parent ?? new CLComparisonOperatorSet("xr", RerollPriority, true, true);
+      ComparisonExplodeRecursive.AddFunction(num, num, (left, comp, right, vars, context) => CompRerolls(ValToList(left), comp, right, vars, context, true, true));
+      ComparisonExplodeRecursive.AddFunction(lst, num, (left, comp, right, vars, context) => CompRerolls(left, comp, right, vars, context, true, true));
+      ComparisonExplodeRecursive.AddFunction(num, lst, (left, comp, right, vars, context) => CompRerolls(ValToList(left), comp, ListToNum(right), vars, context, true, true));
+      ComparisonExplodeRecursive.AddFunction(lst, lst, (left, comp, right, vars, context) => CompRerolls(left, comp, ListToNum(right), vars, context, true, true));
 
       // The binary "k" operator.
       BinaryKeep = CLOperators.BinaryOperators.GetOrNull("k") ?? new CLBinaryOperator("k", KeepPriority, true, true);
@@ -107,6 +159,9 @@ namespace Nixill.DiceLib {
       BinaryRepeat = CLOperators.BinaryOperators.GetOrNull("**") ?? new CLBinaryOperator("**", RepeatPriority, false, true);
       BinaryRepeat.AddFunction(obj, num, BinRepeat);
       BinaryRepeat.AddFunction(obj, lst, (left, right, vars, context) => BinRepeat(left, ListToNum(right), vars, context));
+
+      // The "!die" function
+      FuncDie = new CLCodeFunction("die", FunctionDie);
     }
 
     private static CalcValue BinDice(CalcObject left, CalcObject right, CLLocalStore vars, CLContextProvider context) {
@@ -153,9 +208,9 @@ namespace Nixill.DiceLib {
         list = true;
       }
 
-      // ... and ensure it's at least two.
+      // ... and ensure it's at least one.
       if (sides < 1) {
-        throw new CLException("Dice must have at least two sides.");
+        throw new CLException("Dice must have at least one side.");
       }
 
       // Now we can roll the dice!
@@ -229,9 +284,9 @@ namespace Nixill.DiceLib {
         list = true;
       }
 
-      // ... and ensure it's at least two.
+      // ... and ensure it's at least one.
       if (sides < 1) {
-        throw new CLException("Dice must have at least two sides.");
+        throw new CLException("Dice must have at least one side.");
       }
 
       // Now we can roll the dice!
@@ -302,6 +357,126 @@ namespace Nixill.DiceLib {
       if (dc != null) dc.PerFunctionUsed += limit;
 
       return output;
+    }
+
+    private static CalcValue CompRerolls(CalcObject left, CLComparison comp, CalcObject right, CLLocalStore vars, CLContextProvider context, bool keep = false, bool recurse = false) {
+      CalcList lstLeft = (CalcList)left;
+      CalcNumber numRight = (CalcNumber)right;
+
+      List<CalcValue> output = new List<CalcValue>();
+
+      DiceContext dc = null;
+      int limit = 0;
+      int limitUsed = 0;
+
+      // We need to get the limits if they've been set
+      if (context.ContainsDerived(typeof(DiceContext), out Type actualDiceContext)) {
+        dc = (DiceContext)(context.Get(actualDiceContext));
+        limit = Math.Min(dc.PerRollLimit, dc.PerFunctionLimit - dc.PerFunctionUsed);
+        if (limit == 0) throw new LimitedDiceException();
+      }
+
+      // Go through the list
+      foreach (CalcValue val in lstLeft) {
+        decimal value;
+        if (val is CalcNumber valNum) value = valNum.Value;
+        else if (val is CalcList valList) value = valList.Sum();
+        else throw new CLException("Re-rolls only work with numeric values.");
+
+        // If it's a value we need to re-roll
+        if (comp.CompareFunction(value, numRight.Value)) {
+          // Keep the original value ("x" and "xr" operators)
+          if (keep) output.Add(val);
+
+          // Now make another value (or recurse)
+          bool redo = true;
+
+          // Now figure out how many sides each die has...
+          int sides = 0;
+          bool list = false;
+          CalcValue dSides;
+
+          CalcList lstSides = null;
+
+          if (val is DiceDie die) {
+            dSides = die.Sides;
+
+            // (Are we using a list or a number for the sides?)
+            if (dSides is CalcNumber nSides) {
+              sides = (int)(nSides.Value);
+            }
+            else if (dSides is CalcList lSides) {
+              lstSides = lSides;
+              sides = lSides.Count;
+              list = true;
+            }
+          }
+          else {
+            decimal valValue = 0;
+            if (val is CalcNumber nVal) valValue = nVal.Value;
+            else if (val is CalcList lVal) valValue = lVal.Sum();
+            else throw new CLException("Reroll only works with numeric values.");
+
+            if (valValue < 0) valValue *= -1;
+
+            sides =
+              (valValue <= 6) ? 6 :
+              (valValue <= 20) ? 20 :
+              (valValue <= 100) ? 100 :
+              (valValue <= 1000) ? 1000 :
+              (valValue <= 10000) ? 10000 :
+              (valValue <= 100000) ? 100000 :
+              (valValue <= 1000000) ? 1000000 :
+              (valValue <= 10000000) ? 10000000 :
+              (valValue <= 100000000) ? 100000000 :
+              (valValue <= 1000000000) ? 1000000000 : 2147483647;
+
+            dSides = new CalcNumber(sides);
+          }
+
+          // Now we can roll the dice!
+          Random rand = null;
+
+          if (context.ContainsDerived(typeof(Random), out Type actualRandom)) {
+            rand = (Random)(context.Get(actualRandom));
+          }
+          else {
+            rand = new Random();
+          }
+
+          while (redo && limitUsed < limit) {
+            int choice = rand.Next(sides);
+            limitUsed++;
+            decimal cValue = 0;
+
+            if (list) {
+              CalcValue cVal = lstSides[choice];
+              if (cVal is CalcNumber cNum) {
+                cValue = cNum.Value;
+                output.Add(new DiceDie(cValue, lstSides));
+              }
+              else if (cVal is CalcList cList) {
+                cValue = cList.Sum();
+                output.Add(new DiceDie(cValue, lstSides));
+              }
+            }
+            else {
+              cValue = choice + 1;
+              output.Add(new DiceDie(cValue, new CalcNumber(sides)));
+            }
+
+            // recursion?
+            if (recurse) redo = comp.CompareFunction(cValue, numRight.Value);
+            else redo = false;
+          }
+        }
+        else {
+          // The reroll comparison wasn't satisfied
+          output.Add(val);
+        }
+      }
+
+      return new CalcList(output.ToArray());
     }
 
     private static CalcValue KeepDropNumber(CalcList list, int count, bool keep, bool highest, CLLocalStore vars) {
@@ -444,6 +619,15 @@ namespace Nixill.DiceLib {
       }
 
       return new CalcList(ret.ToArray());
+    }
+
+    private static DiceDie FunctionDie(CalcObject[] pars, CLLocalStore vars, CLContextProvider context) {
+      if (pars.Length < 2) throw new CLException("{!die} requires two params: A number and a value.");
+
+      CalcNumber num = NumberAt(pars, 0, "!die", vars, context);
+      CalcValue val = pars[1].GetValue();
+
+      return new DiceDie(num.Value, val);
     }
   }
 }
