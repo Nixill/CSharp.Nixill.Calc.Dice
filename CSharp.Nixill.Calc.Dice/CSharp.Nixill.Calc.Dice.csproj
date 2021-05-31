@@ -12,7 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Nixill.Calc" Version="0.2.7" />
+    <!-- <PackageReference Include="Nixill.Calc" Version="0.2.8" /> -->
+    <ProjectReference Include="../../CSharp.Nixill.Calc/CSharp.Nixill.Calc/CSharp.Nixill.Calc.csproj" />
   </ItemGroup>
 
 </Project>

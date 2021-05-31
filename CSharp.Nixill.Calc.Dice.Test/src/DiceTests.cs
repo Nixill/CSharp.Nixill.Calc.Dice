@@ -69,6 +69,13 @@ namespace Nixill.Testing {
       string test15 = TestLine(test14 + "xr%2", vars, context,
         "[{!die,3,10},{!die,4,10},{!die,1,10},{!die,7,10},{!die,10,10},{!die,9,10},{!die,6,10},{!die,7,10},{!die,4,10},{!die,4,10},{!die,9,10},{!die,7,10},{!die,3,10},{!die,10,10},{!die,7,10}]");
       // generated: 71
+
+      // now some issues we've had
+      rand.Next(); // 72
+      rand.Next(); // 73
+      diceContext.PerFunctionUsed = 0;
+      string test16 = TestLine(test15 + "6d6khd6", vars, context, "[{!die,6,6},{!die,6,6}]");
+      // generated: 80
     }
 
     public string TestLine(string line, CLLocalStore vars, CLContextProvider context, string expected) {
