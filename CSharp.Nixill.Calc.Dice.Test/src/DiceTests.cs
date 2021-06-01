@@ -74,7 +74,7 @@ namespace Nixill.Testing {
       rand.Next(); // 72
       rand.Next(); // 73
       diceContext.PerFunctionUsed = 0;
-      string test16 = TestLine(test15 + "6d6khd6", vars, context, "[{!die,6,6},{!die,6,6}]");
+      string test16 = TestLine("6d6khd6", vars, context, "[{!die,5,6},{!die,6,6},{!die,6,6}]");
       // generated: 80
     }
 
