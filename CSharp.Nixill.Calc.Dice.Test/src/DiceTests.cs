@@ -6,10 +6,13 @@ using Nixill.CalcLib.Varaibles;
 using Nixill.DiceLib;
 using NUnit.Framework;
 
-namespace Nixill.Testing {
-  public class DiceTests {
+namespace Nixill.Testing
+{
+  public class DiceTests
+  {
     [Test]
-    public void TestDice() {
+    public void TestDice()
+    {
       // We're going to use a fake randomizer so we know how random numbers go.
       Random rand = new Random(237);
       CLContextProvider context = new CLContextProvider();
@@ -74,11 +77,12 @@ namespace Nixill.Testing {
       rand.Next(); // 72
       rand.Next(); // 73
       diceContext.PerFunctionUsed = 0;
-      string test16 = TestLine("6d6khd6", vars, context, "[{!die,5,6},{!die,6,6},{!die,6,6}]");
+      string test16 = TestLine("6d6kh(d6)", vars, context, "[{!die,5,6},{!die,6,6},{!die,6,6}]");
       // generated: 80
     }
 
-    public string TestLine(string line, CLLocalStore vars, CLContextProvider context, string expected) {
+    public string TestLine(string line, CLLocalStore vars, CLContextProvider context, string expected)
+    {
       // We'll parse the line as usual
       CalcObject obj1 = CLInterpreter.Interpret(line);
       string code2 = obj1.ToCode();
