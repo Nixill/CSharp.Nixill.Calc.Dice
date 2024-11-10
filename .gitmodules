@@ -1,0 +1,3 @@
+[submodule "CSharp.Nixill.Calc"]
+	path = CSharp.Nixill.Calc
+	url = https://github.com/Nixill/CSharp.Nixill.Calc
